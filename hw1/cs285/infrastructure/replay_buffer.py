@@ -18,7 +18,7 @@ class ReplayBuffer(object):
         self.terminals = None
 
     def __len__(self):
-        if self.obs:
+        if self.obs is not None:
             return self.obs.shape[0]
         else:
             return 0
@@ -41,7 +41,8 @@ class ReplayBuffer(object):
             self.next_obs = next_observations[-self.max_size:]
             self.terminals = terminals[-self.max_size:]
         else:
-            self.obs = np.concatenate([self.obs, observations])[-self.max_size:]
+            self.obs = np.concatenate(
+                [self.obs, observations])[-self.max_size:]
             self.acs = np.concatenate([self.acs, actions])[-self.max_size:]
             if concat_rew:
                 self.rews = np.concatenate(
@@ -59,4 +60,3 @@ class ReplayBuffer(object):
             self.terminals = np.concatenate(
                 [self.terminals, terminals]
             )[-self.max_size:]
-

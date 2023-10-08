@@ -6,7 +6,7 @@ matplotlib==3.5.3
 ipython==7.34.0
 moviepy==1.0.3
 pyvirtualdisplay==3.0
-torch==1.12.1
+torch==1.13.1+cu116
 opencv-python==4.6.0.66
 ipdb==0.13.9
 swig==4.0.2
