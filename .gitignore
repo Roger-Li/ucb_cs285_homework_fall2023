@@ -130,3 +130,6 @@ dmypy.json
 
 # Logs
 */data/
+
+# Mac
+*.DS_Store
