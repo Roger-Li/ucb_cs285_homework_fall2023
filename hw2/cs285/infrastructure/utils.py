@@ -22,22 +22,24 @@ def sample_trajectory(
         # render an image
         if render:
             if hasattr(env, "sim"):
-                img = env.sim.render(camera_name="track", height=500, width=500)[::-1]
+                img = env.sim.render(camera_name="track",
+                                     height=500, width=500)[::-1]
             else:
                 img = env.render(mode="single_rgb_array")
             image_obs.append(
-                cv2.resize(img, dsize=(250, 250), interpolation=cv2.INTER_CUBIC)
+                cv2.resize(img, dsize=(250, 250),
+                           interpolation=cv2.INTER_CUBIC)
             )
 
-        # TODO use the most recent ob and the policy to decide what to do
-        ac: np.ndarray = None
+        # DONE: use the most recent ob and the policy to decide what to do
+        ac: np.ndarray = policy.get_action(ob)
 
-        # TODO: use that action to take a step in the environment
-        next_ob, rew, done, _ = None, None, None, None
+        # DONE: use that action to take a step in the environment
+        next_ob, rew, done, _ = env.step(ac)
 
-        # TODO rollout can end due to done, or due to max_length
+        # DONE: rollout can end due to done, or due to max_length
         steps += 1
-        rollout_done: bool = None
+        rollout_done: bool = 1 if done or steps >= max_length else 0
 
         # record result of taking that action
         obs.append(ob)
@@ -129,7 +131,8 @@ def convert_listofrollouts(trajs):
     """
     observations = np.concatenate([traj["observation"] for traj in trajs])
     actions = np.concatenate([traj["action"] for traj in trajs])
-    next_observations = np.concatenate([traj["next_observation"] for traj in trajs])
+    next_observations = np.concatenate(
+        [traj["next_observation"] for traj in trajs])
     terminals = np.concatenate([traj["terminal"] for traj in trajs])
     concatenated_rewards = np.concatenate([traj["reward"] for traj in trajs])
     unconcatenated_rewards = [traj["reward"] for traj in trajs]

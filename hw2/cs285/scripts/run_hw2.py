@@ -68,17 +68,25 @@ def run_training_loop(args):
 
     for itr in range(args.n_iter):
         print(f"\n********** Iteration {itr} ************")
-        # TODO: sample `args.batch_size` transitions using utils.sample_trajectories
+        # DONE: sample `args.batch_size` transitions using utils.sample_trajectories
         # make sure to use `max_ep_len`
-        trajs, envsteps_this_batch = None, None  # TODO
+        trajs, envsteps_this_batch = utils.sample_trajectories(
+            env, agent.actor, args.batch_size, max_ep_len
+        )
         total_envsteps += envsteps_this_batch
 
         # trajs should be a list of dictionaries of NumPy arrays, where each dictionary corresponds to a trajectory.
         # this line converts this into a single dictionary of lists of NumPy arrays.
         trajs_dict = {k: [traj[k] for traj in trajs] for k in trajs[0]}
+        print(trajs_dict.keys())
 
-        # TODO: train the agent using the sampled trajectories and the agent's update function
-        train_info: dict = None
+        # DONE: train the agent using the sampled trajectories and the agent's update function
+        train_info: dict = agent.update(
+            trajs_dict['observation'],
+            trajs_dict['action'],
+            trajs_dict['reward'],
+            trajs_dict['terminal']
+        )
 
         if itr % args.scalar_log_freq == 0:
             # save eval metrics
@@ -100,7 +108,12 @@ def run_training_loop(args):
             # perform the logging
             for key, value in logs.items():
                 print("{} : {}".format(key, value))
-                logger.log_scalar(value, key, itr)
+                # logger.log_scalar(value, key, itr)
+                if isinstance(value, dict):
+                    for sub_key, sub_value in value.items():
+                        logger.log_scalar(sub_value, f'{key}/{sub_key}', itr)
+                else:
+                    logger.log_scalar(value, key, itr)
             print("Done logging...\n\n")
 
             logger.flush()
@@ -130,8 +143,10 @@ def main():
 
     parser.add_argument("--use_reward_to_go", "-rtg", action="store_true")
     parser.add_argument("--use_baseline", action="store_true")
-    parser.add_argument("--baseline_learning_rate", "-blr", type=float, default=5e-3)
-    parser.add_argument("--baseline_gradient_steps", "-bgs", type=int, default=5)
+    parser.add_argument("--baseline_learning_rate",
+                        "-blr", type=float, default=5e-3)
+    parser.add_argument("--baseline_gradient_steps",
+                        "-bgs", type=int, default=5)
     parser.add_argument("--gae_lambda", type=float, default=None)
     parser.add_argument("--normalize_advantages", "-na", action="store_true")
     parser.add_argument(
@@ -162,7 +177,8 @@ def main():
     # create directory for logging
     logdir_prefix = "q2_pg_"  # keep for autograder
 
-    data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../data")
+    data_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "../../data")
 
     if not (os.path.exists(data_path)):
         os.makedirs(data_path)
