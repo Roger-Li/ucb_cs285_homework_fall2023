@@ -87,7 +87,10 @@ class PGAgent(nn.Module):
         # step 4: if needed, use all datapoints (s_t, a_t, q_t) to update the PG critic/baseline
         if self.critic is not None:
             # Done: perform `self.baseline_gradient_steps` updates to the critic/baseline network
-            critic_info: dict = None
+            critic_info: dict = {}
+            for _ in range(self.baseline_gradient_steps):
+                critic_info = self.critic.update(obs, q_values)
+                info['critic_info'] = critic_info
 
             info.update(critic_info)
 
@@ -125,26 +128,35 @@ class PGAgent(nn.Module):
             # DONE: if no baseline, then use the Q function (state action function) values as advantages
             advantages = q_values
         else:
-            # TODO: run the critic and use it as a baseline
-            values = None
+            # DONE: run the critic and use it as a baseline
+            values = ptu.to_numpy(
+                self.critic(ptu.from_numpy(obs)).squeeze()
+            )
             assert values.shape == q_values.shape
 
             if self.gae_lambda is None:
-                # TODO: if using a baseline, but not GAE, what are the advantages?
-                advantages = None
+                # DONE: if using a baseline, but not GAE, the advantages equal to
+                # the Q values minus the state-dependent V values
+                advantages = q_values - values
             else:
-                # TODO: implement GAE
+                # DONE: implement GAE
                 batch_size = obs.shape[0]
 
                 # HINT: append a dummy T+1 value for simpler recursive calculation
                 values = np.append(values, [0])
                 advantages = np.zeros(batch_size + 1)
-
+                next_advantage = 0  # Initializing the next advantage as 0
                 for i in reversed(range(batch_size)):
-                    # TODO: recursively compute advantage estimates starting from timestep T.
+                    # DONE: recursively compute advantage estimates starting from timestep T.
                     # HINT: use terminals to handle edge cases. terminals[i] is 1 if the state is the last in its
                     # trajectory, and 0 otherwise.
-                    pass
+                    # The formula for GAE is: A_t = delta_t + (gamma * lambda * A_{t+1})
+                    # where delta_t = r_t + gamma * V_{t+1} - V_t
+                    delta_t = rewards[i] + self.gamma * \
+                        values[i + 1] * (1 - terminals[i]) - values[i]
+                    advantages[i] = delta_t + self.gamma * \
+                        self.gae_lambda * next_advantage * (1 - terminals[i])
+                    next_advantage = advantages[i]
 
                 # remove dummy advantage
                 advantages = advantages[:-1]
